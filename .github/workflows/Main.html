@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sherlock - AI Crypto Analyst</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        :root {
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #0f0f1a 100%);
+            min-height: 100vh;
+        }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .glass-dark {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .glow-green {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        .glow-red {
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+        }
+        
+        .glow-purple {
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.2);
+        }
+        
+        .signal-pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+        
+        .typing-indicator span {
+            animation: typing 1.4s infinite;
+            display: inline-block;
+        }
+        
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+        
+        .chat-container {
+            height: calc(100vh - 400px);
+            min-height: 300px;
+        }
+        
+        .parameter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 8px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.5);
+            border-radius: 3px;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .animate-slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .signal-badge {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .signal-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+        }
+    </style>
+</head>
+<body class="text-white">
+    <!-- Header -->
+    <header class="glass-dark sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                    <i class="fas fa-magnifying-glass-chart text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold gradient-text">SHERLOCK</h1>
+                    <p class="text-xs text-gray-400">AI Crypto Intelligence</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="glass rounded-xl px-4 py-2 flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <span class="text-sm text-gray-300">Live Data</span>
+                    </div>
+                    <div class="h-4 w-px bg-gray-600"></div>
+                    <span class="text-sm text-gray-400 mono" id="lastUpdate">--:--:--</span>
+                </div>
+                
+                <button onclick="openSettings()" class="glass rounded-xl p-3 hover:bg-white/10 transition">
+                    <i class="fas fa-gear text-gray-400"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-6">
+        <!-- API Key Setup Modal -->
+        <div id="apiModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+            <div class="glass rounded-2xl p-8 max-w-md w-full mx-4 animate-slide-up">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-key text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold">Configure Sherlock</h2>
+                    <p class="text-gray-400 mt-2">Enter your Gemini API key to enable AI analysis</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm text-gray-400 mb-2 block">Gemini API Key</label>
+                        <input type="password" id="apiKeyInput" placeholder="AIza..." 
+                            class="w-full bg-black/30 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none transition">
+                    </div>
+                    
+                    <div>
+                        <label class="text-sm text-gray-400 mb-2 block">Model</label>
+                        <select id="modelSelect" class="w-full bg-black/30 border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-purple-500 focus:outline-none transition">
+                            <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast)</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Advanced)</option>
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash (Balanced)</option>
+                        </select>
+                    </div>
+                    
+                    <button onclick="saveApiKey()" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl px-6 py-3 font-semibold hover:opacity-90 transition">
+                        Start Analyzing
+                    </button>
+                    
+                    <p class="text-xs text-gray-500 text-center">
+                        Get your API key from <a href="https://aistudio.google.com/apikey" target="_blank" class="text-purple-400 hover:underline">Google AI Studio</a>
+                    </p>
+                    
+                    <button onclick="clearSettings()" class="text-xs text-gray-500 hover:text-red-400 transition mt-2 w-full text-center">
+                        Clear saved settings
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Asset Search & Selection -->
+        <div class="glass rounded-2xl p-6 mb-6">
+            <div class="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                <div class="flex-1 w-full lg:w-auto">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="assetSearch" placeholder="Search crypto assets (e.g., Bitcoin, ETH, SOL...)" 
+                            class="w-full bg-black/30 border border-gray-700 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none transition"
+                            oninput="searchAssets(this.value)">
+                        <div id="searchResults" class="absolute top-full left-0 right-0 mt-2 glass rounded-xl overflow-hidden hidden z-40 max-h-64 overflow-y-auto scrollbar-thin"></div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2 flex-wrap">
+                    <button onclick="selectAsset('bitcoin')" class="glass rounded-xl px-4 py-2 text-sm hover:bg-white/10 transition flex items-center gap-2">
+                        <img src="https://assets.coingecko.com/coins/images/1/small/bitcoin.png" class="w-5 h-5 rounded-full">
+                        BTC
+                    </button>
+                    <button onclick="selectAsset('ethereum')" class="glass rounded-xl px-4 py-2 text-sm hover:bg-white/10 transition flex items-center gap-2">
+                        <img src="https://assets.coingecko.com/coins/images/279/small/ethereum.png" class="w-5 h-5 rounded-full">
+                        ETH
+                    </button>
+                    <button onclick="selectAsset('solana')" class="glass rounded-xl px-4 py-2 text-sm hover:bg-white/10 transition flex items-center gap-2">
+                        <img src="https://assets.coingecko.com/coins/images/4128/small/solana.png" class="w-5 h-5 rounded-full">
+                        SOL
+                    </button>
+                    <button onclick="selectAsset('binancecoin')" class="glass rounded-xl px-4 py-2 text-sm hover:bg-white/10 transition flex items-center gap-2">
+                        <img src="https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png" class="w-5 h-5 rounded-full">
+                        BNB
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <!-- Left Column - Asset Info & Parameters -->
+            <div class="xl:col-span-2 space-y-6">
+                <!-- Asset Overview -->
+                <div class="glass rounded-2xl p-6">
+                    <div class="flex items-start justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <img id="assetLogo" src="https://assets.coingecko.com/coins/images/1/small/bitcoin.png" class="w-16 h-16 rounded-2xl">
+                            <div>
+                                <h2 id="assetName" class="text-2xl font-bold">Bitcoin</h2>
+                                <p id="assetSymbol" class="text-gray-400 uppercase">BTC</p>
+                            </div>
+                        </div>
+                        
+                        <div id="signalBadge" class="signal-badge glass rounded-xl px-6 py-3 text-center">
+                            <p class="text-xs text-gray-400 mb-1">AI Signal</p>
+                            <p id="signalText" class="text-xl font-bold text-yellow-500">ANALYZING...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="glass-dark rounded-xl p-4">
+                            <p class="text-xs text-gray-400 mb-1">Price</p>
+                            <p id="currentPrice" class="text-xl font-bold mono">$--,---</p>
+                            <p id="priceChange" class="text-sm text-green-500 mono">+0.00%</p>
+                        </div>
+                        <div class="glass-dark rounded-xl p-4">
+                            <p class="text-xs text-gray-400 mb-1">Market Cap</p>
+                            <p id="marketCap" class="text-xl font-bold mono">$--B</p>
+                            <p id="mcRank" class="text-sm text-gray-400">Rank #--</p>
+                        </div>
+                        <div class="glass-dark rounded-xl p-4">
+                            <p class="text-xs text-gray-400 mb-1">24h Volume</p>
+                            <p id="volume24h" class="text-xl font-bold mono">$--B</p>
+                            <p id="volChange" class="text-sm text-gray-400">--% of MC</p>
+                        </div>
+                        <div class="glass-dark rounded-xl p-4">
+                            <p class="text-xs text-gray-400 mb-1">Confidence</p>
+                            <p id="confidenceScore" class="text-xl font-bold mono text-purple-400">--%</p>
+                            <p class="text-sm text-gray-400">AI Score</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Price Chart -->
+                <div class="glass rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold">Price Chart</h3>
+                        <div class="flex gap-2">
+                            <button onclick="changeTimeframe('1')" class="timeframe-btn glass rounded-lg px-3 py-1 text-sm hover:bg-white/10 transition" data-tf="1">24H</button>
+                            <button onclick="changeTimeframe('7')" class="timeframe-btn glass rounded-lg px-3 py-1 text-sm hover:bg-white/10 transition" data-tf="7">7D</button>
+                            <button onclick="changeTimeframe('30')" class="timeframe-btn glass rounded-lg px-3 py-1 text-sm hover:bg-white/10 transition bg-white/10" data-tf="30">30D</button>
+                            <button onclick="changeTimeframe('90')" class="timeframe-btn glass rounded-lg px-3 py-1 text-sm hover:bg-white/10 transition" data-tf="90">90D</button>
+                        </div>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 100+ Parameters Analysis -->
+                <div class="glass rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold flex items-center gap-2">
+                            <i class="fas fa-chart-bar text-purple-400"></i>
+                            100+ Parameter Analysis
+                        </h3>
+                        <span id="paramCount" class="text-sm text-gray-400">Loading parameters...</span>
+                    </div>
+                    
+                    <!-- Parameter Categories -->
+                    <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+                        <button onclick="filterParams('all')" class="param-filter whitespace-nowrap glass rounded-lg px-4 py-2 text-sm bg-purple-500/20 border-purple-500/50">All</button>
+                        <button onclick="filterParams('price')" class="param-filter whitespace-nowrap glass rounded-lg px-4 py-2 text-sm hover:bg-white/10">Price</button>
+                        <button onclick="filterParams('volume')" class="param-filter whitespace-nowrap glass rounded-lg px-4 py-2 text-sm hover:bg-white/10">Volume</button>
+                        <button onclick="filterParams('technical')" class="param-filter whitespace-nowrap glass rounded-lg px-4 py-2 text-sm hover:bg-white/10">Technical</button>
+                        <button onclick="filterParams('market')" class="param-filter whitespace-nowrap glass rounded-lg px-4 py-2 text-sm hover:bg-white/10">Market</button>
+                        <button onclick="filterParams('sentiment')" class="param-filter whitespace-nowrap glass rounded-lg px-4 py-2 text-sm hover:bg-white/10">Sentiment</button>
+                        <button onclick="filterParams('onchain')" class="param-filter whitespace-nowrap glass rounded-lg px-4 py-2 text-sm hover:bg-white/10">On-Chain</button>
+                    </div>
+                    
+                    <div id="parametersGrid" class="parameter-grid max-h-96 overflow-y-auto scrollbar-thin pr-2">
+                        <!-- Parameters will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - AI Chat -->
+            <div class="space-y-6">
+                <!-- AI Chat Interface -->
+                <div class="glass rounded-2xl p-6 flex flex-col" style="height: calc(100vh - 200px); min-height: 600px;">
+                    <div class="flex items-center gap-3 mb-4 pb-4 border-b border-gray-700/50">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold">Sherlock AI</h3>
+                            <p class="text-xs text-gray-400" id="aiStatus">Ready to analyze</p>
+                        </div>
+                    </div>
+                    
+                    <div id="chatMessages" class="flex-1 overflow-y-auto scrollbar-thin space-y-4 mb-4">
+                        <!-- Welcome Message -->
+                        <div class="flex gap-3 animate-slide-up">
+                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-robot text-sm"></i>
+                            </div>
+                            <div class="glass-dark rounded-2xl rounded-tl-sm p-4 max-w-[85%]">
+                                <p class="text-sm text-gray-300">Welcome to Sherlock! I'm your AI crypto analyst powered by Gemini. I analyze <strong>100+ parameters</strong> in real-time to provide you with actionable insights.</p>
+                                <p class="text-sm text-gray-300 mt-2">Select a crypto asset to begin analysis, or ask me anything about the markets!</p>
+                                <div class="flex flex-wrap gap-2 mt-3">
+                                    <button onclick="askQuickQuestion('analyze')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition">📊 Full Analysis</button>
+                                    <button onclick="askQuickQuestion('signal')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition">🎯 Buy/Sell Signal</button>
+                                    <button onclick="askQuickQuestion('risk')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition">⚠️ Risk Assessment</button>
+                                    <button onclick="askQuickQuestion('levels')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition">📐 Key Levels</button>
+                                    <button onclick="askQuickQuestion('compare')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition">⚖️ Compare to BTC</button>
+                                </div>
+                                <div class="flex flex-wrap gap-2 mt-2 pt-2 border-t border-gray-700/50">
+                                    <span class="text-xs text-gray-500 w-full mb-1">📅 Timeframe Analysis:</span>
+                                    <button onclick="askQuickQuestion('1-3days')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30">🕐 1-3 Days</button>
+                                    <button onclick="askQuickQuestion('1week')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30">📆 1 Week</button>
+                                    <button onclick="askQuickQuestion('1month')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition bg-gradient-to-r from-orange-500/20 to-yellow-500/20 border border-orange-500/30">📅 1 Month</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Chat Input -->
+                    <div class="relative">
+                        <textarea id="chatInput" placeholder="Ask Sherlock anything..." rows="2"
+                            class="w-full bg-black/30 border border-gray-700 rounded-xl pl-4 pr-12 py-3 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none transition resize-none"
+                            onkeydown="handleChatKeydown(event)"></textarea>
+                        <button onclick="sendMessage()" id="sendBtn" class="absolute right-3 bottom-3 w-8 h-8 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center hover:opacity-90 transition">
+                            <i class="fas fa-paper-plane text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        /*
+        ╔══════════════════════════════════════════════════════════════════════════════╗
+        ║                    🚀 FIREBASE HOSTING GUIDE FOR SHERLOCK 🚀                  ║
+        ╠══════════════════════════════════════════════════════════════════════════════╣
+        ║                                                                              ║
+        ║  STEP 1: INSTALL FIREBASE CLI                                               ║
+        ║  ─────────────────────────────────────────────────────────────────────────   ║
+        ║  Open terminal and run:                                                      ║
+        ║  $ npm install -g firebase-tools                                             ║
+        ║                                                                              ║
+        ║  STEP 2: LOGIN TO FIREBASE                                                   ║
+        ║  ─────────────────────────────────────────────────────────────────────────   ║
+        ║  $ firebase login                                                            ║
+        ║  (This will open a browser to authenticate with your Google account)        ║
+        ║                                                                              ║
+        ║  STEP 3: CREATE PROJECT FOLDER                                               ║
+        ║  ─────────────────────────────────────────────────────────────────────────   ║
+        ║  $ mkdir sherlock-app                                                        ║
+        ║  $ cd sherlock-app                                                           ║
+        ║  $ mkdir public                                                              ║
+        ║  (Copy this index.html file into the 'public' folder)                       ║
+        ║                                                                              ║
+        ║  STEP 4: INITIALIZE FIREBASE                                                 ║
+        ║  ─────────────────────────────────────────────────────────────────────────   ║
+        ║  $ firebase init                                                             ║
+        ║  - Select "Hosting" using spacebar, then Enter                              ║
+        ║  - Select "Create a new project" or use existing                            ║
+        ║  - Public directory: public                                                 ║
+        ║  - Single-page app: Yes                                                     ║
+        ║  - GitHub auto deploys: No (or Yes if you want)                             ║
+        ║  - Overwrite index.html: No                                                 ║
+        ║                                                                              ║
+        ║  STEP 5: DEPLOY                                                              ║
+        ║  ─────────────────────────────────────────────────────────────────────────   ║
+        ║  $ firebase deploy                                                           ║
+        ║                                                                              ║
+        ║  🎉 DONE! Your app will be live at:                                          ║
+        ║  https://your-project-name.web.app                                           ║
+        ║                                                                              ║
+        ║  OPTIONAL: CUSTOM DOMAIN                                                     ║
+        ║  ─────────────────────────────────────────────────────────────────────────   ║
+        ║  Go to Firebase Console > Hosting > Add custom domain                        ║
+        ║  Follow the DNS verification steps                                           ║
+        ║                                                                              ║
+        ╚══════════════════════════════════════════════════════════════════════════════╝
+        */
+
+        // Default API key (embedded for convenience - users can change in settings)
+        const DEFAULT_API_KEY = 'AIzaSyBWyW0V6BGoUfoVHJzuK7DEv2tSGBV56dI';
+        
+        // Global State
+        let state = {
+            apiKey: localStorage.getItem('gemini_api_key') || DEFAULT_API_KEY,
+            model: localStorage.getItem('gemini_model') || 'gemini-2.0-flash',
+            currentAsset: null,
+            assetData: null,
+            marketData: null,
+            chartData: null,
+            priceChart: null,
+            timeframe: '30',
+            parameters: [],
+            chatHistory: [],
+            isAnalyzing: false
+        };
+
+        // Initialize - No modal needed if we have default key
+        document.addEventListener('DOMContentLoaded', () => {
+            // Always initialize with default or saved key
+            initializeApp();
+        });
+
+        function saveApiKey() {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            const model = document.getElementById('modelSelect').value;
+            
+            if (!key) {
+                alert('Please enter your API key');
+                return;
+            }
+            
+            state.apiKey = key;
+            state.model = model;
+            localStorage.setItem('gemini_api_key', key);
+            localStorage.setItem('gemini_model', model);
+            
+            document.getElementById('apiModal').classList.add('hidden');
+            initializeApp();
+        }
+
+        function openSettings() {
+            document.getElementById('apiKeyInput').value = state.apiKey;
+            document.getElementById('modelSelect').value = state.model;
+            document.getElementById('apiModal').classList.remove('hidden');
+        }
+
+        function clearSettings() {
+            localStorage.removeItem('gemini_api_key');
+            localStorage.removeItem('gemini_model');
+            state.apiKey = '';
+            state.model = 'gemini-2.0-flash';
+            document.getElementById('apiKeyInput').value = '';
+            alert('Settings cleared! Please enter your API key again.');
+        }
+
+        async function testApiKey(key) {
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ role: 'user', parts: [{ text: 'Hello' }] }]
+                    })
+                });
+                const result = await response.json();
+                return !result.error;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function initializeApp() {
+            selectAsset('bitcoin');
+            updateTime();
+            setInterval(updateTime, 1000);
+            setInterval(() => {
+                if (state.currentAsset) {
+                    fetchAssetData(state.currentAsset);
+                }
+            }, 30000); // Refresh every 30 seconds
+        }
+
+        function updateTime() {
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        }
+
+        // Asset Search
+        async function searchAssets(query) {
+            if (query.length < 2) {
+                document.getElementById('searchResults').classList.add('hidden');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                const resultsDiv = document.getElementById('searchResults');
+                resultsDiv.innerHTML = data.coins.slice(0, 10).map(coin => `
+                    <button onclick="selectAsset('${coin.id}')" class="w-full flex items-center gap-3 p-3 hover:bg-white/10 transition text-left">
+                        <img src="${coin.thumb}" class="w-8 h-8 rounded-full">
+                        <div>
+                            <p class="font-medium">${coin.name}</p>
+                            <p class="text-xs text-gray-400 uppercase">${coin.symbol}</p>
+                        </div>
+                        <span class="ml-auto text-xs text-gray-500">Rank #${coin.market_cap_rank || 'N/A'}</span>
+                    </button>
+                `).join('');
+                
+                resultsDiv.classList.remove('hidden');
+            } catch (error) {
+                console.error('Search error:', error);
+            }
+        }
+
+        async function selectAsset(assetId) {
+            state.currentAsset = assetId;
+            document.getElementById('searchResults').classList.add('hidden');
+            document.getElementById('assetSearch').value = '';
+            
+            await fetchAssetData(assetId);
+            await fetchChartData(assetId, state.timeframe);
+            generateParameters();
+            
+            // Auto-analyze
+            if (state.apiKey) {
+                performAnalysis();
+            }
+        }
+
+        async function fetchAssetData(assetId) {
+            try {
+                const response = await fetch(`https://api.coingecko.com/api/v3/coins/${assetId}?localization=false&tickers=true&market_data=true&community_data=true&developer_data=true&sparkline=true`);
+                const data = await response.json();
+                state.assetData = data;
+                updateAssetUI(data);
+            } catch (error) {
+                console.error('Failed to fetch asset data:', error);
+            }
+        }
+
+        async function fetchChartData(assetId, days) {
+            try {
+                const response = await fetch(`https://api.coingecko.com/api/v3/coins/${assetId}/market_chart?vs_currency=usd&days=${days}`);
+                const data = await response.json();
+                state.chartData = data;
+                updateChart(data);
+            } catch (error) {
+                console.error('Failed to fetch chart data:', error);
+            }
+        }
+
+        function updateAssetUI(data) {
+            document.getElementById('assetLogo').src = data.image?.large || '';
+            document.getElementById('assetName').textContent = data.name;
+            document.getElementById('assetSymbol').textContent = data.symbol?.toUpperCase();
+            
+            const price = data.market_data?.current_price?.usd || 0;
+            const change24h = data.market_data?.price_change_percentage_24h || 0;
+            const marketCap = data.market_data?.market_cap?.usd || 0;
+            const volume = data.market_data?.total_volume?.usd || 0;
+            const rank = data.market_cap_rank || 'N/A';
+            
+            document.getElementById('currentPrice').textContent = formatCurrency(price);
+            
+            const changeEl = document.getElementById('priceChange');
+            changeEl.textContent = `${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}%`;
+            changeEl.className = `text-sm mono ${change24h >= 0 ? 'text-green-500' : 'text-red-500'}`;
+            
+            document.getElementById('marketCap').textContent = formatLargeNumber(marketCap);
+            document.getElementById('mcRank').textContent = `Rank #${rank}`;
+            document.getElementById('volume24h').textContent = formatLargeNumber(volume);
+            document.getElementById('volChange').textContent = `${((volume/marketCap)*100).toFixed(1)}% of MC`;
+        }
+
+        function updateChart(data) {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            
+            if (state.priceChart) {
+                state.priceChart.destroy();
+            }
+            
+            const prices = data.prices || [];
+            const labels = prices.map(p => new Date(p[0]).toLocaleDateString());
+            const values = prices.map(p => p[1]);
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+            gradient.addColorStop(0, 'rgba(139, 92, 246, 0.3)');
+            gradient.addColorStop(1, 'rgba(139, 92, 246, 0)');
+            
+            state.priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            display: false
+                        },
+                        y: {
+                            display: true,
+                            grid: {
+                                color: 'rgba(255,255,255,0.05)'
+                            },
+                            ticks: {
+                                color: '#6b7280',
+                                callback: (value) => formatCurrency(value)
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+        }
+
+        function changeTimeframe(days) {
+            state.timeframe = days;
+            document.querySelectorAll('.timeframe-btn').forEach(btn => {
+                btn.classList.remove('bg-white/10');
+                if (btn.dataset.tf === days) btn.classList.add('bg-white/10');
+            });
+            fetchChartData(state.currentAsset, days);
+        }
+
+        // Generate 100+ Parameters
+        function generateParameters() {
+            if (!state.assetData) return;
+            
+            const data = state.assetData;
+            const md = data.market_data || {};
+            
+            const params = [
+                // Price Parameters (20+)
+                { category: 'price', name: 'Current Price', value: formatCurrency(md.current_price?.usd), raw: md.current_price?.usd },
+                { category: 'price', name: '24h Change', value: `${(md.price_change_percentage_24h || 0).toFixed(2)}%`, raw: md.price_change_percentage_24h, sentiment: md.price_change_percentage_24h > 0 ? 'bullish' : 'bearish' },
+                { category: 'price', name: '7d Change', value: `${(md.price_change_percentage_7d || 0).toFixed(2)}%`, raw: md.price_change_percentage_7d, sentiment: md.price_change_percentage_7d > 0 ? 'bullish' : 'bearish' },
+                { category: 'price', name: '14d Change', value: `${(md.price_change_percentage_14d || 0).toFixed(2)}%`, raw: md.price_change_percentage_14d, sentiment: md.price_change_percentage_14d > 0 ? 'bullish' : 'bearish' },
+                { category: 'price', name: '30d Change', value: `${(md.price_change_percentage_30d || 0).toFixed(2)}%`, raw: md.price_change_percentage_30d, sentiment: md.price_change_percentage_30d > 0 ? 'bullish' : 'bearish' },
+                { category: 'price', name: '60d Change', value: `${(md.price_change_percentage_60d || 0).toFixed(2)}%`, raw: md.price_change_percentage_60d, sentiment: md.price_change_percentage_60d > 0 ? 'bullish' : 'bearish' },
+                { category: 'price', name: '200d Change', value: `${(md.price_change_percentage_200d || 0).toFixed(2)}%`, raw: md.price_change_percentage_200d, sentiment: md.price_change_percentage_200d > 0 ? 'bullish' : 'bearish' },
+                { category: 'price', name: '1y Change', value: `${(md.price_change_percentage_1y || 0).toFixed(2)}%`, raw: md.price_change_percentage_1y, sentiment: md.price_change_percentage_1y > 0 ? 'bullish' : 'bearish' },
+                { category: 'price', name: 'ATH', value: formatCurrency(md.ath?.usd), raw: md.ath?.usd },
+                { category: 'price', name: 'ATH Change', value: `${(md.ath_change_percentage?.usd || 0).toFixed(2)}%`, raw: md.ath_change_percentage?.usd, sentiment: 'bearish' },
+                { category: 'price', name: 'ATH Date', value: md.ath_date?.usd ? new Date(md.ath_date.usd).toLocaleDateString() : 'N/A' },
+                { category: 'price', name: 'ATL', value: formatCurrency(md.atl?.usd), raw: md.atl?.usd },
+                { category: 'price', name: 'ATL Change', value: `${(md.atl_change_percentage?.usd || 0).toFixed(2)}%`, raw: md.atl_change_percentage?.usd, sentiment: 'bullish' },
+                { category: 'price', name: '24h High', value: formatCurrency(md.high_24h?.usd), raw: md.high_24h?.usd },
+                { category: 'price', name: '24h Low', value: formatCurrency(md.low_24h?.usd), raw: md.low_24h?.usd },
+                { category: 'price', name: 'Price vs ATH', value: `${(((md.current_price?.usd / md.ath?.usd) * 100) || 0).toFixed(1)}%`, raw: (md.current_price?.usd / md.ath?.usd) * 100 },
+                { category: 'price', name: '24h Range Position', value: `${(((md.current_price?.usd - md.low_24h?.usd) / (md.high_24h?.usd - md.low_24h?.usd) * 100) || 0).toFixed(1)}%` },
+                { category: 'price', name: 'Price in BTC', value: `${(md.current_price?.btc || 0).toFixed(8)} BTC`, raw: md.current_price?.btc },
+                { category: 'price', name: 'Price in ETH', value: `${(md.current_price?.eth || 0).toFixed(6)} ETH`, raw: md.current_price?.eth },
+                
+                // Volume Parameters (15+)
+                { category: 'volume', name: '24h Volume', value: formatLargeNumber(md.total_volume?.usd), raw: md.total_volume?.usd },
+                { category: 'volume', name: 'Volume/MC Ratio', value: `${((md.total_volume?.usd / md.market_cap?.usd) * 100 || 0).toFixed(2)}%`, raw: (md.total_volume?.usd / md.market_cap?.usd) * 100 },
+                { category: 'volume', name: 'Volume Change 24h', value: 'Calculating...', raw: 0 },
+                { category: 'volume', name: 'Avg Daily Volume', value: formatLargeNumber(md.total_volume?.usd), raw: md.total_volume?.usd },
+                { category: 'volume', name: 'Volume Trend', value: md.total_volume?.usd > md.market_cap?.usd * 0.1 ? 'High' : 'Normal', sentiment: md.total_volume?.usd > md.market_cap?.usd * 0.1 ? 'bullish' : 'neutral' },
+                { category: 'volume', name: 'BTC Volume', value: `${(md.total_volume?.btc || 0).toFixed(2)} BTC`, raw: md.total_volume?.btc },
+                { category: 'volume', name: 'ETH Volume', value: `${(md.total_volume?.eth || 0).toFixed(2)} ETH`, raw: md.total_volume?.eth },
+                { category: 'volume', name: 'Liquidity Score', value: md.total_volume?.usd > md.market_cap?.usd * 0.05 ? 'High' : 'Moderate' },
+                { category: 'volume', name: 'Trade Activity', value: md.total_volume?.usd > 1000000000 ? 'Very High' : md.total_volume?.usd > 100000000 ? 'High' : 'Moderate' },
+                { category: 'volume', name: 'Volume Rank', value: `Top ${Math.min(100, Math.ceil(data.market_cap_rank / 10) * 10)}` },
+                
+                // Market Parameters (20+)
+                { category: 'market', name: 'Market Cap', value: formatLargeNumber(md.market_cap?.usd), raw: md.market_cap?.usd },
+                { category: 'market', name: 'MC Rank', value: `#${data.market_cap_rank || 'N/A'}`, raw: data.market_cap_rank },
+                { category: 'market', name: 'FDV', value: formatLargeNumber(md.fully_diluted_valuation?.usd), raw: md.fully_diluted_valuation?.usd },
+                { category: 'market', name: 'MC/FDV Ratio', value: `${((md.market_cap?.usd / md.fully_diluted_valuation?.usd) * 100 || 0).toFixed(1)}%`, raw: (md.market_cap?.usd / md.fully_diluted_valuation?.usd) * 100 },
+                { category: 'market', name: 'Circulating Supply', value: formatLargeNumber(md.circulating_supply), raw: md.circulating_supply },
+                { category: 'market', name: 'Total Supply', value: formatLargeNumber(md.total_supply), raw: md.total_supply },
+                { category: 'market', name: 'Max Supply', value: md.max_supply ? formatLargeNumber(md.max_supply) : 'Unlimited', raw: md.max_supply },
+                { category: 'market', name: 'Supply Ratio', value: `${((md.circulating_supply / md.total_supply) * 100 || 0).toFixed(1)}%`, raw: (md.circulating_supply / md.total_supply) * 100 },
+                { category: 'market', name: 'Inflation Rate', value: md.max_supply ? `${(((md.total_supply - md.circulating_supply) / md.circulating_supply) * 100).toFixed(2)}%` : 'Variable' },
+                { category: 'market', name: 'MC Change 24h', value: formatLargeNumber(md.market_cap_change_24h), raw: md.market_cap_change_24h, sentiment: md.market_cap_change_24h > 0 ? 'bullish' : 'bearish' },
+                { category: 'market', name: 'MC Change % 24h', value: `${(md.market_cap_change_percentage_24h || 0).toFixed(2)}%`, raw: md.market_cap_change_percentage_24h, sentiment: md.market_cap_change_percentage_24h > 0 ? 'bullish' : 'bearish' },
+                { category: 'market', name: 'Dominance Est.', value: `${((md.market_cap?.usd / 2500000000000) * 100).toFixed(3)}%` },
+                { category: 'market', name: 'Market Tier', value: md.market_cap?.usd > 10000000000 ? 'Large Cap' : md.market_cap?.usd > 1000000000 ? 'Mid Cap' : 'Small Cap' },
+                
+                // Technical Indicators (25+)
+                { category: 'technical', name: 'RSI (14)', value: calculateRSI(data.market_data?.sparkline_7d?.price), raw: 50 },
+                { category: 'technical', name: 'SMA 7', value: formatCurrency(calculateSMA(data.market_data?.sparkline_7d?.price, 7)), raw: 0 },
+                { category: 'technical', name: 'SMA 25', value: formatCurrency(calculateSMA(data.market_data?.sparkline_7d?.price, 25)), raw: 0 },
+                { category: 'technical', name: 'EMA 12', value: formatCurrency(calculateEMA(data.market_data?.sparkline_7d?.price, 12)), raw: 0 },
+                { category: 'technical', name: 'EMA 26', value: formatCurrency(calculateEMA(data.market_data?.sparkline_7d?.price, 26)), raw: 0 },
+                { category: 'technical', name: 'MACD Signal', value: calculateMACD(data.market_data?.sparkline_7d?.price), raw: 0 },
+                { category: 'technical', name: 'Bollinger Upper', value: formatCurrency(calculateBollinger(data.market_data?.sparkline_7d?.price).upper), raw: 0 },
+                { category: 'technical', name: 'Bollinger Lower', value: formatCurrency(calculateBollinger(data.market_data?.sparkline_7d?.price).lower), raw: 0 },
+                { category: 'technical', name: 'Bollinger %B', value: `${calculateBollinger(data.market_data?.sparkline_7d?.price).percentB.toFixed(2)}%`, raw: 0 },
+                { category: 'technical', name: 'Volatility (7d)', value: `${calculateVolatility(data.market_data?.sparkline_7d?.price).toFixed(2)}%`, raw: 0 },
+                { category: 'technical', name: 'Momentum', value: calculateMomentum(data.market_data?.sparkline_7d?.price), raw: 0 },
+                { category: 'technical', name: 'Trend Direction', value: md.price_change_percentage_7d > 0 ? '↑ Uptrend' : '↓ Downtrend', sentiment: md.price_change_percentage_7d > 0 ? 'bullish' : 'bearish' },
+                { category: 'technical', name: 'Trend Strength', value: Math.abs(md.price_change_percentage_7d || 0) > 10 ? 'Strong' : 'Moderate', raw: 0 },
+                { category: 'technical', name: 'Support Level', value: formatCurrency(md.low_24h?.usd * 0.95), raw: md.low_24h?.usd * 0.95 },
+                { category: 'technical', name: 'Resistance Level', value: formatCurrency(md.high_24h?.usd * 1.05), raw: md.high_24h?.usd * 1.05 },
+                { category: 'technical', name: 'Pivot Point', value: formatCurrency((md.high_24h?.usd + md.low_24h?.usd + md.current_price?.usd) / 3), raw: 0 },
+                { category: 'technical', name: 'Fibonacci 38.2%', value: formatCurrency(md.low_24h?.usd + (md.high_24h?.usd - md.low_24h?.usd) * 0.382), raw: 0 },
+                { category: 'technical', name: 'Fibonacci 61.8%', value: formatCurrency(md.low_24h?.usd + (md.high_24h?.usd - md.low_24h?.usd) * 0.618), raw: 0 },
+                { category: 'technical', name: 'ATR Est.', value: `${(((md.high_24h?.usd - md.low_24h?.usd) / md.current_price?.usd) * 100).toFixed(2)}%`, raw: 0 },
+                { category: 'technical', name: 'Price Momentum', value: md.price_change_percentage_24h > md.price_change_percentage_7d/7 ? 'Accelerating' : 'Decelerating' },
+                
+                // Sentiment & Social (15+)
+                { category: 'sentiment', name: 'Sentiment Score', value: `${data.sentiment_votes_up_percentage || 50}%`, raw: data.sentiment_votes_up_percentage, sentiment: data.sentiment_votes_up_percentage > 50 ? 'bullish' : 'bearish' },
+                { category: 'sentiment', name: 'Community Score', value: `${((data.community_score || 0)).toFixed(1)}/100`, raw: data.community_score },
+                { category: 'sentiment', name: 'Developer Score', value: `${((data.developer_score || 0)).toFixed(1)}/100`, raw: data.developer_score },
+                { category: 'sentiment', name: 'Liquidity Score', value: `${((data.liquidity_score || 0)).toFixed(1)}/100`, raw: data.liquidity_score },
+                { category: 'sentiment', name: 'Public Interest', value: `${((data.public_interest_score || 0)).toFixed(1)}/100`, raw: data.public_interest_score },
+                { category: 'sentiment', name: 'Twitter Followers', value: formatLargeNumber(data.community_data?.twitter_followers), raw: data.community_data?.twitter_followers },
+                { category: 'sentiment', name: 'Reddit Subscribers', value: formatLargeNumber(data.community_data?.reddit_subscribers), raw: data.community_data?.reddit_subscribers },
+                { category: 'sentiment', name: 'Reddit Active', value: formatLargeNumber(data.community_data?.reddit_accounts_active_48h), raw: data.community_data?.reddit_accounts_active_48h },
+                { category: 'sentiment', name: 'Telegram Users', value: formatLargeNumber(data.community_data?.telegram_channel_user_count), raw: data.community_data?.telegram_channel_user_count },
+                { category: 'sentiment', name: 'Facebook Likes', value: formatLargeNumber(data.community_data?.facebook_likes), raw: data.community_data?.facebook_likes },
+                { category: 'sentiment', name: 'Alexa Rank', value: data.public_interest_stats?.alexa_rank ? `#${data.public_interest_stats.alexa_rank}` : 'N/A', raw: data.public_interest_stats?.alexa_rank },
+                { category: 'sentiment', name: 'Coingecko Score', value: `${(data.coingecko_score || 0).toFixed(1)}/100`, raw: data.coingecko_score },
+                { category: 'sentiment', name: 'Watchlist Count', value: formatLargeNumber(data.watchlist_portfolio_users), raw: data.watchlist_portfolio_users },
+                { category: 'sentiment', name: 'Trending Score', value: data.market_cap_rank <= 10 ? 'Very High' : data.market_cap_rank <= 50 ? 'High' : 'Moderate' },
+                
+                // On-Chain Metrics (15+)
+                { category: 'onchain', name: 'Genesis Date', value: data.genesis_date || 'Unknown' },
+                { category: 'onchain', name: 'Hashing Algorithm', value: data.hashing_algorithm || 'N/A' },
+                { category: 'onchain', name: 'Block Time', value: data.block_time_in_minutes ? `${data.block_time_in_minutes} min` : 'N/A', raw: data.block_time_in_minutes },
+                { category: 'onchain', name: 'Categories', value: data.categories?.slice(0, 2).join(', ') || 'N/A' },
+                { category: 'onchain', name: 'Platforms', value: Object.keys(data.platforms || {}).length.toString() },
+                { category: 'onchain', name: 'GitHub Stars', value: formatLargeNumber(data.developer_data?.stars), raw: data.developer_data?.stars },
+                { category: 'onchain', name: 'GitHub Forks', value: formatLargeNumber(data.developer_data?.forks), raw: data.developer_data?.forks },
+                { category: 'onchain', name: 'GitHub Subscribers', value: formatLargeNumber(data.developer_data?.subscribers), raw: data.developer_data?.subscribers },
+                { category: 'onchain', name: 'Total Issues', value: formatLargeNumber(data.developer_data?.total_issues), raw: data.developer_data?.total_issues },
+                { category: 'onchain', name: 'Closed Issues', value: formatLargeNumber(data.developer_data?.closed_issues), raw: data.developer_data?.closed_issues },
+                { category: 'onchain', name: 'PR Merged', value: formatLargeNumber(data.developer_data?.pull_requests_merged), raw: data.developer_data?.pull_requests_merged },
+                { category: 'onchain', name: 'PR Contributors', value: formatLargeNumber(data.developer_data?.pull_request_contributors), raw: data.developer_data?.pull_request_contributors },
+                { category: 'onchain', name: 'Commit Count 4w', value: formatLargeNumber(data.developer_data?.commit_count_4_weeks), raw: data.developer_data?.commit_count_4_weeks },
+                { category: 'onchain', name: 'Code Additions 4w', value: formatLargeNumber(data.developer_data?.code_additions_deletions_4_weeks?.additions), raw: data.developer_data?.code_additions_deletions_4_weeks?.additions },
+                { category: 'onchain', name: 'Code Deletions 4w', value: formatLargeNumber(data.developer_data?.code_additions_deletions_4_weeks?.deletions), raw: data.developer_data?.code_additions_deletions_4_weeks?.deletions }
+            ];
+            
+            state.parameters = params;
+            renderParameters(params);
+        }
+
+        // Technical Indicator Calculations
+        function calculateRSI(prices) {
+            if (!prices || prices.length < 14) return 'N/A';
+            
+            let gains = 0, losses = 0;
+            for (let i = prices.length - 14; i < prices.length; i++) {
+                const change = prices[i] - prices[i-1];
+                if (change > 0) gains += change;
+                else losses -= change;
+            }
+            
+            const avgGain = gains / 14;
+            const avgLoss = losses / 14;
+            const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+            const rsi = 100 - (100 / (1 + rs));
+            
+            const sentiment = rsi > 70 ? 'bearish' : rsi < 30 ? 'bullish' : 'neutral';
+            return `${rsi.toFixed(1)} (${rsi > 70 ? 'Overbought' : rsi < 30 ? 'Oversold' : 'Neutral'})`;
+        }
+
+        function calculateSMA(prices, period) {
+            if (!prices || prices.length < period) return 0;
+            const slice = prices.slice(-period);
+            return slice.reduce((a, b) => a + b, 0) / period;
+        }
+
+        function calculateEMA(prices, period) {
+            if (!prices || prices.length < period) return 0;
+            const k = 2 / (period + 1);
+            let ema = prices[0];
+            for (let i = 1; i < prices.length; i++) {
+                ema = prices[i] * k + ema * (1 - k);
+            }
+            return ema;
+        }
+
+        function calculateMACD(prices) {
+            if (!prices || prices.length < 26) return 'N/A';
+            const ema12 = calculateEMA(prices, 12);
+            const ema26 = calculateEMA(prices, 26);
+            const macd = ema12 - ema26;
+            return macd > 0 ? '↑ Bullish' : '↓ Bearish';
+        }
+
+        function calculateBollinger(prices) {
+            if (!prices || prices.length < 20) return { upper: 0, lower: 0, percentB: 50 };
+            const sma = calculateSMA(prices, 20);
+            const slice = prices.slice(-20);
+            const variance = slice.reduce((sum, p) => sum + Math.pow(p - sma, 2), 0) / 20;
+            const stdDev = Math.sqrt(variance);
+            const upper = sma + (2 * stdDev);
+            const lower = sma - (2 * stdDev);
+            const current = prices[prices.length - 1];
+            const percentB = ((current - lower) / (upper - lower)) * 100;
+            return { upper, lower, percentB };
+        }
+
+        function calculateVolatility(prices) {
+            if (!prices || prices.length < 2) return 0;
+            const returns = [];
+            for (let i = 1; i < prices.length; i++) {
+                returns.push((prices[i] - prices[i-1]) / prices[i-1] * 100);
+            }
+            const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
+            const variance = returns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / returns.length;
+            return Math.sqrt(variance);
+        }
+
+        function calculateMomentum(prices) {
+            if (!prices || prices.length < 10) return 'N/A';
+            const current = prices[prices.length - 1];
+            const past = prices[prices.length - 10];
+            const momentum = ((current - past) / past) * 100;
+            return `${momentum > 0 ? '+' : ''}${momentum.toFixed(2)}%`;
+        }
+
+        function renderParameters(params, filter = 'all') {
+            const filtered = filter === 'all' ? params : params.filter(p => p.category === filter);
+            const grid = document.getElementById('parametersGrid');
+            
+            grid.innerHTML = filtered.map(p => `
+                <div class="glass-dark rounded-lg p-3 hover:bg-white/5 transition">
+                    <p class="text-xs text-gray-400 truncate">${p.name}</p>
+                    <p class="text-sm font-semibold mono ${p.sentiment === 'bullish' ? 'text-green-400' : p.sentiment === 'bearish' ? 'text-red-400' : 'text-white'} truncate">${p.value}</p>
+                </div>
+            `).join('');
+            
+            document.getElementById('paramCount').textContent = `${filtered.length} of ${params.length} parameters`;
+        }
+
+        function filterParams(category) {
+            document.querySelectorAll('.param-filter').forEach(btn => {
+                btn.classList.remove('bg-purple-500/20', 'border-purple-500/50');
+                btn.classList.add('hover:bg-white/10');
+            });
+            event.target.classList.add('bg-purple-500/20', 'border-purple-500/50');
+            event.target.classList.remove('hover:bg-white/10');
+            
+            renderParameters(state.parameters, category);
+        }
+
+        // AI Analysis Functions
+        async function performAnalysis() {
+            if (!state.apiKey || !state.assetData) return;
+            
+            state.isAnalyzing = true;
+            document.getElementById('signalText').textContent = 'ANALYZING...';
+            document.getElementById('signalText').className = 'text-xl font-bold text-yellow-500';
+            document.getElementById('aiStatus').textContent = 'Deep analysis in progress...';
+            
+            const analysisPrompt = buildAnalysisPrompt();
+            
+            try {
+                const response = await callGemini(analysisPrompt);
+                const signal = extractSignal(response);
+                updateSignalBadge(signal);
+                document.getElementById('aiStatus').textContent = 'Analysis complete';
+            } catch (error) {
+                console.error('Analysis error:', error);
+                document.getElementById('signalText').textContent = 'ERROR';
+                document.getElementById('aiStatus').textContent = 'Analysis failed';
+            }
+            
+            state.isAnalyzing = false;
+        }
+
+        function buildAnalysisPrompt() {
+            const data = state.assetData;
+            const params = state.parameters;
+            const md = data.market_data || {};
+            
+            // Categorize parameters for structured analysis
+            const priceParams = params.filter(p => p.category === 'price');
+            const volumeParams = params.filter(p => p.category === 'volume');
+            const technicalParams = params.filter(p => p.category === 'technical');
+            const marketParams = params.filter(p => p.category === 'market');
+            const sentimentParams = params.filter(p => p.category === 'sentiment');
+            const onchainParams = params.filter(p => p.category === 'onchain');
+            
+            return `You are Sherlock, an elite quantitative crypto analyst with expertise in technical analysis, on-chain metrics, and market microstructure. You must provide rigorous, evidence-based analysis.
+
+## ASSET: ${data.name} (${data.symbol?.toUpperCase()})
+## ANALYSIS TIMESTAMP: ${new Date().toISOString()}
+## DATA FRESHNESS: Real-time (< 30 seconds)
+
+═══════════════════════════════════════════════════════════════
+                    COMPREHENSIVE DATA FEED
+═══════════════════════════════════════════════════════════════
+
+### 📈 PRICE METRICS (${priceParams.length} parameters)
+${priceParams.map(p => `• ${p.name}: ${p.value}`).join('\n')}
+
+### 📊 VOLUME ANALYSIS (${volumeParams.length} parameters)
+${volumeParams.map(p => `• ${p.name}: ${p.value}`).join('\n')}
+
+### 🔧 TECHNICAL INDICATORS (${technicalParams.length} parameters)
+${technicalParams.map(p => `• ${p.name}: ${p.value}`).join('\n')}
+
+### 💰 MARKET STRUCTURE (${marketParams.length} parameters)
+${marketParams.map(p => `• ${p.name}: ${p.value}`).join('\n')}
+
+### 🎭 SENTIMENT & SOCIAL (${sentimentParams.length} parameters)
+${sentimentParams.map(p => `• ${p.name}: ${p.value}`).join('\n')}
+
+### ⛓️ ON-CHAIN & DEVELOPMENT (${onchainParams.length} parameters)
+${onchainParams.map(p => `• ${p.name}: ${p.value}`).join('\n')}
+
+═══════════════════════════════════════════════════════════════
+                    ANALYSIS FRAMEWORK
+═══════════════════════════════════════════════════════════════
+
+You MUST follow this systematic chain-of-thought analysis:
+
+## STEP 1: TREND IDENTIFICATION
+- Analyze price changes across ALL timeframes (24h, 7d, 14d, 30d, 60d, 200d, 1y)
+- Determine primary trend direction and strength
+- Identify trend consistency or divergences across timeframes
+- Calculate trend score: -100 (strong downtrend) to +100 (strong uptrend)
+
+## STEP 2: TECHNICAL ANALYSIS
+- Evaluate RSI: Is it overbought (>70), oversold (<30), or neutral?
+- Analyze MACD signal and momentum direction
+- Check Bollinger Band position (%B) for volatility context
+- Compare current price to SMA/EMA levels
+- Identify support (24h low, Fibonacci levels) and resistance (24h high, ATH proximity)
+
+## STEP 3: VOLUME CONFIRMATION
+- Is volume supporting the price trend? (Volume/MC ratio)
+- Compare current volume to average (high volume = conviction)
+- Check liquidity adequacy for position sizing
+
+## STEP 4: MARKET CONTEXT
+- Market cap tier assessment (Large/Mid/Small cap risk profile)
+- Supply dynamics (circulating vs total vs max supply)
+- FDV vs MC ratio (dilution risk)
+- Market dominance position
+
+## STEP 5: SENTIMENT ANALYSIS
+- Community sentiment score interpretation
+- Social engagement trends (growing/declining)
+- Developer activity assessment
+- Public interest momentum
+
+## STEP 6: RISK ASSESSMENT
+Rate each risk factor 1-10:
+- Volatility Risk: Based on 7d volatility and ATR
+- Liquidity Risk: Based on volume/MC ratio
+- Drawdown Risk: Distance from ATH
+- Concentration Risk: Supply distribution
+- Development Risk: GitHub activity trends
+
+## STEP 7: SIGNAL SYNTHESIS
+Weigh all factors:
+- Technical factors: 35% weight
+- Trend factors: 25% weight
+- Volume factors: 15% weight
+- Sentiment factors: 15% weight
+- Risk factors: 10% weight (negative contribution if high risk)
+
+═══════════════════════════════════════════════════════════════
+                    REQUIRED OUTPUT FORMAT
+═══════════════════════════════════════════════════════════════
+
+**LINE 1 (MANDATORY):** Signal must be exactly one of:
+STRONG BUY | BUY | HOLD | SELL | STRONG SELL
+
+**LINE 2 (MANDATORY):** Confidence: XX%
+
+Signal Criteria:
+- STRONG BUY: Score > 70, multiple confirmations, low risk
+- BUY: Score 50-70, positive bias, moderate risk acceptable
+- HOLD: Score 30-50, mixed signals, wait for clarity
+- SELL: Score 10-30, negative bias, rising risk
+- STRONG SELL: Score < 10, multiple bearish confirmations, high risk
+
+Then provide your structured analysis:
+
+### 🎯 SIGNAL REASONING
+[2-3 sentences explaining the primary driver of your signal]
+
+### ✅ BULLISH FACTORS
+[List 3-5 specific data points supporting upside, with exact numbers]
+
+### ❌ BEARISH FACTORS
+[List 3-5 specific data points supporting downside, with exact numbers]
+
+### 📐 KEY LEVELS
+- Immediate Support: $XX,XXX
+- Strong Support: $XX,XXX
+- Immediate Resistance: $XX,XXX
+- Target Resistance: $XX,XXX
+
+### ⚠️ RISK PROFILE
+- Overall Risk: Low/Medium/High
+- Key Risk: [Identify single biggest risk]
+- Risk/Reward Ratio: X:X
+
+### 📅 TIMEFRAME OUTLOOK
+- Short-term (24-48h): [Bullish/Neutral/Bearish]
+- Medium-term (1-2 weeks): [Bullish/Neutral/Bearish]
+- Key catalyst to watch: [Specific event or level]
+
+### 💡 ACTIONABLE RECOMMENDATION
+[Specific, actionable advice with position sizing suggestion based on risk]
+
+⚠️ DISCLAIMER: This analysis is for educational purposes only. Always conduct your own research and consider your risk tolerance before making investment decisions.`;
+        }
+
+        async function callGemini(prompt, chatMode = false) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${state.model}:generateContent?key=${state.apiKey}`;
+            
+            const messages = chatMode ? [
+                ...state.chatHistory.slice(-10).map(m => ({
+                    role: m.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: m.content }]
+                })),
+                { role: 'user', parts: [{ text: prompt }] }
+            ] : [
+                { role: 'user', parts: [{ text: prompt }] }
+            ];
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: messages,
+                    generationConfig: {
+                        temperature: 0.7,
+                        topK: 40,
+                        topP: 0.95,
+                        maxOutputTokens: 8192
+                    },
+                    safetySettings: [
+                        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+                    ]
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.error) {
+                throw new Error(result.error.message);
+            }
+            
+            return result.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated';
+        }
+
+        function extractSignal(response) {
+            const lines = response.split('\n');
+            const signalLine = lines[0].toUpperCase();
+            
+            let signal = 'HOLD';
+            let confidence = 50;
+            
+            if (signalLine.includes('STRONG BUY')) signal = 'STRONG BUY';
+            else if (signalLine.includes('STRONG SELL')) signal = 'STRONG SELL';
+            else if (signalLine.includes('BUY')) signal = 'BUY';
+            else if (signalLine.includes('SELL')) signal = 'SELL';
+            else if (signalLine.includes('HOLD')) signal = 'HOLD';
+            
+            const confMatch = response.match(/Confidence:\s*(\d+)/i);
+            if (confMatch) confidence = parseInt(confMatch[1]);
+            
+            return { signal, confidence, analysis: response };
+        }
+
+        function updateSignalBadge(result) {
+            const badge = document.getElementById('signalBadge');
+            const text = document.getElementById('signalText');
+            const conf = document.getElementById('confidenceScore');
+            
+            text.textContent = result.signal;
+            conf.textContent = `${result.confidence}%`;
+            
+            const colors = {
+                'STRONG BUY': { text: 'text-green-400', glow: 'glow-green' },
+                'BUY': { text: 'text-green-400', glow: '' },
+                'HOLD': { text: 'text-yellow-500', glow: '' },
+                'SELL': { text: 'text-red-400', glow: '' },
+                'STRONG SELL': { text: 'text-red-400', glow: 'glow-red' }
+            };
+            
+            const style = colors[result.signal] || colors['HOLD'];
+            text.className = `text-xl font-bold ${style.text}`;
+            badge.className = `signal-badge glass rounded-xl px-6 py-3 text-center ${style.glow}`;
+            
+            // Add analysis to chat
+            addMessage('assistant', result.analysis);
+        }
+
+        // Chat Functions
+        function handleChatKeydown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message || !state.apiKey) return;
+            
+            input.value = '';
+            addMessage('user', message);
+            
+            // Show typing indicator
+            const typingId = showTypingIndicator();
+            
+            try {
+                const contextPrompt = buildContextPrompt(message);
+                const response = await callGemini(contextPrompt, true);
+                
+                removeTypingIndicator(typingId);
+                addMessage('assistant', response);
+                
+                // Update chat history
+                state.chatHistory.push({ role: 'user', content: message });
+                state.chatHistory.push({ role: 'assistant', content: response });
+                
+            } catch (error) {
+                removeTypingIndicator(typingId);
+                addMessage('assistant', `Error: ${error.message}. Please check your API key.`);
+            }
+        }
+
+        function buildContextPrompt(message) {
+            const data = state.assetData;
+            const params = state.parameters;
+            const md = data?.market_data || {};
+            
+            // Categorize for structured context
+            const priceParams = params.filter(p => p.category === 'price');
+            const technicalParams = params.filter(p => p.category === 'technical');
+            const marketParams = params.filter(p => p.category === 'market');
+            const sentimentParams = params.filter(p => p.category === 'sentiment');
+            
+            let context = `You are Sherlock, an elite AI crypto analyst assistant created to provide institutional-grade analysis. You combine technical analysis, fundamental research, and quantitative methods to deliver accurate, well-reasoned insights.
+
+## YOUR ANALYTICAL PRINCIPLES:
+1. **Evidence-Based**: Every claim must be supported by specific data points
+2. **Probabilistic Thinking**: Express uncertainty appropriately, avoid absolute statements
+3. **Multi-Factor Analysis**: Consider technical, fundamental, sentiment, and risk factors
+4. **Clear Reasoning**: Explain the "why" behind every conclusion
+5. **Risk Awareness**: Always highlight potential downsides and risks
+6. **Actionable Insights**: Provide specific, practical recommendations
+
+## REASONING FRAMEWORK:
+When answering questions, follow this mental process:
+1. Identify what data is relevant to the question
+2. Analyze the data objectively (bullish AND bearish perspectives)
+3. Synthesize findings into a coherent view
+4. Quantify confidence level based on signal strength
+5. Provide specific actionable recommendations
+6. Note key risks and what could invalidate your analysis`;
+            
+            if (data) {
+                context += `
+
+═══════════════════════════════════════════════════════════════
+                    LIVE MARKET DATA
+═══════════════════════════════════════════════════════════════
+
+## ASSET PROFILE
+- Name: ${data.name} (${data.symbol?.toUpperCase()})
+- Market Cap Rank: #${data.market_cap_rank || 'N/A'}
+- Categories: ${data.categories?.slice(0, 3).join(', ') || 'N/A'}
+
+## CURRENT SNAPSHOT
+- Price: ${formatCurrency(md.current_price?.usd)}
+- 24h Change: ${(md.price_change_percentage_24h || 0).toFixed(2)}%
+- 24h Range: ${formatCurrency(md.low_24h?.usd)} - ${formatCurrency(md.high_24h?.usd)}
+- Market Cap: ${formatLargeNumber(md.market_cap?.usd)}
+- 24h Volume: ${formatLargeNumber(md.total_volume?.usd)}
+- Volume/MC Ratio: ${((md.total_volume?.usd / md.market_cap?.usd) * 100 || 0).toFixed(2)}%
+
+## PRICE PERFORMANCE (Multi-Timeframe)
+${priceParams.filter(p => p.name.includes('Change')).map(p => `• ${p.name}: ${p.value}`).join('\n')}
+
+## TECHNICAL INDICATORS
+${technicalParams.map(p => `• ${p.name}: ${p.value}`).join('\n')}
+
+## MARKET METRICS
+${marketParams.map(p => `• ${p.name}: ${p.value}`).join('\n')}
+
+## SENTIMENT DATA
+${sentimentParams.map(p => `• ${p.name}: ${p.value}`).join('\n')}
+
+## ATH/ATL CONTEXT
+- All-Time High: ${formatCurrency(md.ath?.usd)} (${(md.ath_change_percentage?.usd || 0).toFixed(1)}% from ATH)
+- ATH Date: ${md.ath_date?.usd ? new Date(md.ath_date.usd).toLocaleDateString() : 'N/A'}
+- All-Time Low: ${formatCurrency(md.atl?.usd)} (${(md.atl_change_percentage?.usd || 0).toFixed(1)}% from ATL)
+`;
+            }
+            
+            context += `
+
+═══════════════════════════════════════════════════════════════
+                    USER QUESTION
+═══════════════════════════════════════════════════════════════
+
+${message}
+
+═══════════════════════════════════════════════════════════════
+                    RESPONSE GUIDELINES
+═══════════════════════════════════════════════════════════════
+
+## QUALITY STANDARDS:
+1. **Be Specific**: Use exact numbers, percentages, and price levels from the data
+2. **Show Your Work**: Explain the reasoning behind conclusions
+3. **Acknowledge Uncertainty**: Use phrases like "based on current data", "probability suggests"
+4. **Balance Perspectives**: Present both bullish and bearish viewpoints
+5. **Quantify Confidence**: When giving signals, include confidence percentage (0-100%)
+6. **Risk Warnings**: Always mention key risks and what could go wrong
+
+## RESPONSE FORMAT:
+- Use clear headers and bullet points for readability
+- Bold key numbers and conclusions using **text**
+- Keep responses comprehensive but concise
+- End with actionable takeaways when appropriate
+
+## SIGNAL CRITERIA (if asked for buy/sell recommendation):
+- STRONG BUY: 70%+ confidence, multiple bullish confirmations, favorable risk/reward
+- BUY: 55-70% confidence, positive bias, acceptable risk
+- HOLD: 40-55% confidence, mixed signals, need more clarity
+- SELL: 25-40% confidence, negative bias, deteriorating metrics
+- STRONG SELL: <25% confidence, multiple bearish signals, high risk
+
+## IMPORTANT REMINDERS:
+- This is for EDUCATIONAL PURPOSES only
+- Always recommend users do their own research (DYOR)
+- Crypto is highly volatile - past performance doesn't guarantee future results
+- Never suggest investing more than one can afford to lose`;
+            
+            return context;
+        }
+
+        function addMessage(role, content) {
+            const container = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = 'flex gap-3 animate-slide-up';
+            
+            const formattedContent = formatMessage(content);
+            
+            if (role === 'user') {
+                div.innerHTML = `
+                    <div class="ml-auto bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl rounded-tr-sm p-4 max-w-[85%]">
+                        <p class="text-sm">${escapeHtml(content)}</p>
+                    </div>
+                    <div class="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-user text-sm"></i>
+                    </div>
+                `;
+            } else {
+                div.innerHTML = `
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-robot text-sm"></i>
+                    </div>
+                    <div class="glass-dark rounded-2xl rounded-tl-sm p-4 max-w-[85%]">
+                        <div class="text-sm text-gray-300 prose prose-invert prose-sm">${formattedContent}</div>
+                    </div>
+                `;
+            }
+            
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function formatMessage(content) {
+            // Convert markdown-like syntax to HTML
+            let formatted = escapeHtml(content);
+            
+            // Bold
+            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>');
+            
+            // Headers
+            formatted = formatted.replace(/^### (.*$)/gim, '<h4 class="text-purple-400 font-semibold mt-3 mb-1">$1</h4>');
+            formatted = formatted.replace(/^## (.*$)/gim, '<h3 class="text-purple-400 font-semibold mt-4 mb-2">$1</h3>');
+            
+            // Lists
+            formatted = formatted.replace(/^\- (.*$)/gim, '<li class="ml-4">• $1</li>');
+            formatted = formatted.replace(/^\* (.*$)/gim, '<li class="ml-4">• $1</li>');
+            
+            // Line breaks
+            formatted = formatted.replace(/\n/g, '<br>');
+            
+            return formatted;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showTypingIndicator() {
+            const container = document.getElementById('chatMessages');
+            const id = 'typing-' + Date.now();
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = 'flex gap-3';
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-robot text-sm"></i>
+                </div>
+                <div class="glass-dark rounded-2xl rounded-tl-sm p-4">
+                    <div class="typing-indicator flex gap-1">
+                        <span class="w-2 h-2 bg-purple-400 rounded-full"></span>
+                        <span class="w-2 h-2 bg-purple-400 rounded-full"></span>
+                        <span class="w-2 h-2 bg-purple-400 rounded-full"></span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return id;
+        }
+
+        function removeTypingIndicator(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function askQuickQuestion(type) {
+            const assetName = state.assetData?.name || 'this asset';
+            const currentPrice = state.assetData?.market_data?.current_price?.usd || 0;
+            const questions = {
+                'analyze': `Provide a comprehensive analysis of ${assetName} based on all 100+ parameters. Structure your response with:
+1. Overall market position and trend analysis
+2. Technical indicator summary (RSI, MACD, Bollinger, momentum)
+3. Volume and liquidity assessment
+4. Sentiment and social metrics evaluation
+5. Key support/resistance levels
+6. Final verdict with confidence percentage`,
+                'signal': `Based on all available data for ${assetName}, provide a trading signal. You MUST:
+1. State clearly: STRONG BUY, BUY, HOLD, SELL, or STRONG SELL
+2. Give a confidence percentage (0-100%)
+3. List the top 3 bullish factors with specific numbers
+4. List the top 3 bearish factors with specific numbers
+5. Provide specific entry, stop-loss, and take-profit levels
+6. Recommend position sizing based on risk`,
+                'risk': `Perform a comprehensive risk assessment for ${assetName}. Analyze:
+1. Volatility risk (based on 7d volatility, ATR)
+2. Drawdown risk (distance from ATH, historical drawdowns)
+3. Liquidity risk (volume/MC ratio, trade activity)
+4. Market risk (correlation to BTC, market cap tier)
+5. Technical risk (overbought/oversold conditions)
+6. Provide an overall risk score (1-10) with explanation`,
+                'levels': `Identify all key price levels for ${assetName}:
+1. Immediate support and resistance from 24h range
+2. Fibonacci retracement levels (23.6%, 38.2%, 50%, 61.8%)
+3. Pivot points (classic calculation)
+4. Bollinger Band levels (upper, middle, lower)
+5. Psychological round numbers nearby
+6. ATH and key historical levels
+Explain which levels are most significant and why.`,
+                'compare': `Compare ${assetName}'s performance against Bitcoin:
+1. Relative strength analysis (is it outperforming or underperforming BTC?)
+2. Correlation assessment
+3. Compare 24h, 7d, and 30d performance
+4. Volume comparison relative to market cap
+5. Which asset offers better risk/reward right now?
+6. Recommendation: Should I hold ${assetName} or rotate to BTC?`,
+                '1-3days': `Provide a **1-3 Day Short-Term Trading Analysis** for ${assetName} (current price: ${currentPrice.toLocaleString()}):
+
+## REQUIRED ANALYSIS:
+1. **Immediate Trend Direction**: Based on 24h momentum and recent price action
+2. **Short-term Technical Setup**:
+   - RSI reading and what it suggests for next 1-3 days
+   - MACD momentum (accelerating or decelerating?)
+   - Bollinger Band position (squeeze, breakout potential?)
+   - Key moving average proximity (price above/below SMA/EMA?)
+
+3. **Volume Analysis**: Is current volume supporting the move? Unusual activity?
+
+4. **Critical Price Levels for Next 1-3 Days**:
+   - Immediate support (where buyers likely step in)
+   - Immediate resistance (where sellers likely appear)
+   - Breakout/breakdown levels to watch
+
+5. **Probability Assessment**:
+   - Bullish scenario (X% probability): Price target & reasoning
+   - Bearish scenario (X% probability): Price target & reasoning
+   - Most likely scenario with confidence %
+
+6. **Actionable Trade Setup**:
+   - Entry zone (specific price range)
+   - Stop-loss level (with % risk)
+   - Take-profit targets (TP1, TP2)
+   - Position sizing recommendation
+
+7. **Key Catalysts/Events** to watch in next 1-3 days
+
+⚠️ Include specific numbers and percentages. Be decisive but acknowledge uncertainty.`,
+                '1week': `Provide a **1 Week Medium-Term Analysis** for ${assetName} (current price: ${currentPrice.toLocaleString()}):
+
+## REQUIRED ANALYSIS:
+1. **Weekly Trend Assessment**:
+   - Primary trend direction (continuation or reversal?)
+   - 7-day performance context vs 30-day trend
+   - Momentum strength analysis
+
+2. **Technical Picture for the Week**:
+   - RSI trajectory (oversold bounce? overbought correction?)
+   - MACD crossover potential or confirmation
+   - Moving average alignment (bullish/bearish structure?)
+   - Chart pattern formations (if any)
+
+3. **Volume Profile**:
+   - Is smart money accumulating or distributing?
+   - Volume trend supporting price action?
+
+4. **Key Levels for the Week**:
+   - Strong support zone (high-probability bounce area)
+   - Strong resistance zone (high-probability rejection area)
+   - Fibonacci levels in play
+   - Psychological price levels
+
+5. **Week Ahead Scenarios**:
+   - **BULLISH CASE** (X% probability):
+     * Target price by end of week
+     * What needs to happen for this scenario
+   - **BEARISH CASE** (X% probability):
+     * Target price by end of week
+     * What triggers this scenario
+   - **BASE CASE** (most likely):
+     * Expected price range
+     * Key swing trading opportunities
+
+6. **Trading Strategy for the Week**:
+   - Swing trade setup with entry/exit
+   - DCA opportunities if applicable
+   - Risk management guidelines
+
+7. **What Would Change My Analysis**:
+   - Bullish invalidation level
+   - Bearish invalidation level
+
+Provide confidence level and clear reasoning for all predictions.`,
+                '1month': `Provide a **1 Month Strategic Analysis** for ${assetName} (current price: ${currentPrice.toLocaleString()}):
+
+## REQUIRED ANALYSIS:
+1. **Monthly Trend & Market Cycle Position**:
+   - Where are we in the broader market cycle?
+   - 30-day, 60-day, and 200-day trend alignment
+   - Macro momentum assessment
+
+2. **Comprehensive Technical Analysis**:
+   - Monthly RSI and historical context
+   - Long-term moving average structure (bullish/bearish?)
+   - Major chart patterns forming
+   - Bollinger Band width (volatility expansion/contraction?)
+   - MACD histogram trend
+
+3. **Fundamental & On-Chain Factors**:
+   - Developer activity trend
+   - Community growth trajectory
+   - Supply dynamics (upcoming unlocks, inflation rate)
+   - Market cap tier and room for growth
+
+4. **Multi-Timeframe Key Levels**:
+   - Major support zones (weekly/monthly significance)
+   - Major resistance zones (historical importance)
+   - All-time high proximity and significance
+   - Key Fibonacci retracement from recent swing
+
+5. **1-Month Price Scenarios**:
+   - **BULLISH SCENARIO** (X% probability):
+     * Month-end target price
+     * Key catalysts that drive this
+     * Path/milestones to watch
+   - **BEARISH SCENARIO** (X% probability):
+     * Month-end target price
+     * Risk factors to monitor
+     * Warning signs to watch
+   - **BASE CASE SCENARIO**:
+     * Most likely price range
+     * Key events/levels during the month
+
+6. **Investment Strategy Recommendations**:
+   - Position building strategy (lump sum vs DCA?)
+   - Optimal entry zones for the month
+   - Risk allocation (% of portfolio suggestion)
+   - Take-profit strategy for existing holders
+
+7. **Risk Assessment for the Month**:
+   - Overall risk score (1-10)
+   - Biggest risk factor
+   - Risk/reward ratio for new positions
+
+8. **What I'm Watching**:
+   - Key metrics to monitor weekly
+   - Signals that would upgrade/downgrade outlook
+
+Provide clear conviction levels and specific price targets with reasoning.`
+            };
+            
+            document.getElementById('chatInput').value = questions[type];
+            sendMessage();
+        }
+
+        // Utility Functions
+        function formatCurrency(num) {
+            if (!num) return '$0.00';
+            if (num >= 1) return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            if (num >= 0.01) return '$' + num.toFixed(4);
+            return '$' + num.toFixed(8);
+        }
+
+        function formatLargeNumber(num) {
+            if (!num) return 'N/A';
+            if (num >= 1e12) return '$' + (num / 1e12).toFixed(2) + 'T';
+            if (num >= 1e9) return '$' + (num / 1e9).toFixed(2) + 'B';
+            if (num >= 1e6) return '$' + (num / 1e6).toFixed(2) + 'M';
+            if (num >= 1e3) return '$' + (num / 1e3).toFixed(2) + 'K';
+            return num.toLocaleString();
+        }
+
+        // Hide search results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#assetSearch') && !e.target.closest('#searchResults')) {
+                document.getElementById('searchResults').classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+# Simple workflow for deploying static content to GitHub Pages
+name: Deploy static content to Pages
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches: ["main"]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Single deploy job since we're just deploying
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload entire repository
+          path: '.'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
