@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sherlock - AI Crypto Analyst</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        :root {
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #0f0f1a 100%);
+            min-height: 100vh;
+        }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .glass-dark {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .glow-green {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        .glow-red {
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+        }
+        
+        .glow-purple {
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.2);
+        }
+        
+        .signal-pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+        
+        .typing-indicator span {
+            animation: typing 1.4s infinite;
+            display: inline-block;
+        }
+        
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+        
+        .chat-container {
+            height: calc(100vh - 400px);
+            min-height: 300px;
+        }
+        
+        .parameter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 8px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.5);
+            border-radius: 3px;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .animate-slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .signal-badge {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .signal-badge::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+        }
+    </style>
+</head>
+<body class="text-white">
+    <!-- Header -->
+    <header class="glass-dark sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                    <i class="fas fa-magnifying-glass-chart text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold gradient-text">SHERLOCK</h1>
+                    <p class="text-xs text-gray-400">AI Crypto Intelligence</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="glass rounded-xl px-4 py-2 flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <span class="text-sm text-gray-300">Live Data</span>
+                    </div>
+                    <div class="h-4 w-px bg-gray-600"></div>
+                    <span class="text-sm text-gray-400 mono" id="lastUpdate">--:--:--</span>
+                </div>
+                
+                <button onclick="openSettings()" class="glass rounded-xl p-3 hover:bg-white/10 transition">
+                    <i class="fas fa-gear text-gray-400"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-6">
+        <!-- API Key Setup Modal -->
+        <div id="apiModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+            <div class="glass rounded-2xl p-8 max-w-md w-full mx-4 animate-slide-up">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-key text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold">Configure Sherlock</h2>
+                    <p class="text-gray-400 mt-2">Enter your Gemini API key to enable AI analysis</p>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm text-gray-400 mb-2 block">Gemini API Key</label>
+                        <input type="password" id="apiKeyInput" placeholder="AIza..." 
+                            class="w-full bg-black/30 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-400 mb-2 block">Model</label>
+                        <select id="modelSelect" class="w-full bg-black/30 border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-purple-500 focus:outline-none transition">
+                            <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast)</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Advanced)</option>
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash (Balanced)</option>
+                        </select>
+                    </div>
+                    <button onclick="saveApiKey()" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl px-6 py-3 font-semibold hover:opacity-90 transition">
+                        Start Analyzing
+                    </button>
+                    <p class="text-xs text-gray-500 text-center">
+                        Get your API key from <a href="https://aistudio.google.com/apikey" target="_blank" class="text-purple-400 hover:underline">Google AI Studio</a>
+                    </p>
+                    <button onclick="clearSettings()" class="text-xs text-gray-500 hover:text-red-400 transition mt-2 w-full text-center">
+                        Clear saved settings
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Asset Search & Selection -->
+        <div class="glass rounded-2xl p-6 mb-6">
+            <div class="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                <div class="flex-1 w-full lg:w-auto">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="assetSearch" placeholder="Search crypto assets (e.g., Bitcoin, ETH, SOL...)" 
+                            class="w-full bg-black/30 border border-gray-700 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none transition"
+                            oninput="searchAssets(this.value)">
+                        <div id="searchResults" class="absolute top-full left-0 right-0 mt-2 glass rounded-xl overflow-hidden hidden z-40 max-h-64 overflow-y-auto scrollbar-thin"></div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2 flex-wrap">
+                    <button onclick="selectAsset('bitcoin')" class="glass rounded-xl px-4 py-2 text-sm hover:bg-white/10 transition flex items-center gap-2">
+                        <img src="https://assets.coingecko.com/coins/images/1/small/bitcoin.png" class="w-5 h-5 rounded-full">
+                        BTC
+                    </button>
+                    <button onclick="selectAsset('ethereum')" class="glass rounded-xl px-4 py-2 text-sm hover:bg-white/10 transition flex items-center gap-2">
+                        <img src="https://assets.coingecko.com/coins/images/279/small/ethereum.png" class="w-5 h-5 rounded-full">
+                        ETH
+                    </button>
+                    <button onclick="selectAsset('solana')" class="glass rounded-xl px-4 py-2 text-sm hover:bg-white/10 transition flex items-center gap-2">
+                        <img src="https://assets.coingecko.com/coins/images/4128/small/solana.png" class="w-5 h-5 rounded-full">
+                        SOL
+                    </button>
+                    <button onclick="selectAsset('binancecoin')" class="glass rounded-xl px-4 py-2 text-sm hover:bg-white/10 transition flex items-center gap-2">
+                        <img src="https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png" class="w-5 h-5 rounded-full">
+                        BNB
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <!-- Left Column - Asset Info & Parameters -->
+            <div class="xl:col-span-2 space-y-6">
+                <!-- Asset Overview -->
+                <div class="glass rounded-2xl p-6">
+                    <div class="flex items-start justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <img id="assetLogo" src="https://assets.coingecko.com/coins/images/1/small/bitcoin.png" class="w-16 h-16 rounded-2xl">
+                            <div>
+                                <h2 id="assetName" class="text-2xl font-bold">Bitcoin</h2>
+                                <p id="assetSymbol" class="text-gray-400 uppercase">BTC</p>
+                            </div>
+                        </div>
+                        
+                        <div id="signalBadge" class="signal-badge glass rounded-xl px-6 py-3 text-center">
+                            <p class="text-xs text-gray-400 mb-1">AI Signal</p>
+                            <p id="signalText" class="text-xl font-bold text-yellow-500">ANALYZING...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="glass-dark rounded-xl p-4">
+                            <p class="text-xs text-gray-400 mb-1">Price</p>
+                            <p id="currentPrice" class="text-xl font-bold mono">$--,---</p>
+                            <p id="priceChange" class="text-sm text-green-500 mono">+0.00%</p>
+                        </div>
+                        <div class="glass-dark rounded-xl p-4">
+                            <p class="text-xs text-gray-400 mb-1">Market Cap</p>
+                            <p id="marketCap" class="text-xl font-bold mono">$--B</p>
+                            <p id="mcRank" class="text-sm text-gray-400">Rank #--</p>
+                        </div>
+                        <div class="glass-dark rounded-xl p-4">
+                            <p class="text-xs text-gray-400 mb-1">24h Volume</p>
+                            <p id="volume24h" class="text-xl font-bold mono">$--B</p>
+                            <p id="volChange" class="text-sm text-gray-400">--% of MC</p>
+                        </div>
+                        <div class="glass-dark rounded-xl p-4">
+                            <p class="text-xs text-gray-400 mb-1">Confidence</p>
+                            <p id="confidenceScore" class="text-xl font-bold mono text-purple-400">--%</p>
+                            <p class="text-sm text-gray-400">AI Score</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Price Chart -->
+                <div class="glass rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold">Price Chart</h3>
+                        <div class="flex gap-2">
+                            <button onclick="changeTimeframe('1')" class="timeframe-btn glass rounded-lg px-3 py-1 text-sm hover:bg-white/10 transition" data-tf="1">24H</button>
+                            <button onclick="changeTimeframe('7')" class="timeframe-btn glass rounded-lg px-3 py-1 text-sm hover:bg-white/10 transition" data-tf="7">7D</button>
+                            <button onclick="changeTimeframe('30')" class="timeframe-btn glass rounded-lg px-3 py-1 text-sm hover:bg-white/10 transition bg-white/10" data-tf="30">30D</button>
+                            <button onclick="changeTimeframe('90')" class="timeframe-btn glass rounded-lg px-3 py-1 text-sm hover:bg-white/10 transition" data-tf="90">90D</button>
+                        </div>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 100+ Parameters Analysis -->
+                <div class="glass rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold flex items-center gap-2">
+                            <i class="fas fa-chart-bar text-purple-400"></i>
+                            100+ Parameter Analysis
+                        </h3>
+                        <span id="paramCount" class="text-sm text-gray-400">Loading parameters...</span>
+                    </div>
+                    
+                    <!-- Parameter Categories -->
+                    <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+                        <button onclick="filterParams('all')" class="param-filter whitespace-nowrap glass rounded-lg px-4 py-2 text-sm bg-purple-500/20 border-purple-500/50">All</button>
+                        <button onclick="filterParams('price')" class="param-filter whitespace-nowrap glass rounded-lg px-4 py-2 text-sm hover:bg-white/10">Price</button>
+                        <button onclick="filterParams('volume')" class="param-filter whitespace-nowrap glass rounded-lg px-4 py-2 text-sm hover:bg-white/10">Volume</button>
+                        <button onclick="filterParams('technical')" class="param-filter whitespace-nowrap glass rounded-lg px-4 py-2 text-sm hover:bg-white/10">Technical</button>
+                        <button onclick="filterParams('market')" class="param-filter whitespace-nowrap glass rounded-lg px-4 py-2 text-sm hover:bg-white/10">Market</button>
+                        <button onclick="filterParams('sentiment')" class="param-filter whitespace-nowrap glass rounded-lg px-4 py-2 text-sm hover:bg-white/10">Sentiment</button>
+                        <button onclick="filterParams('onchain')" class="param-filter whitespace-nowrap glass rounded-lg px-4 py-2 text-sm hover:bg-white/10">On-Chain</button>
+                    </div>
+                    
+                    <div id="parametersGrid" class="parameter-grid max-h-96 overflow-y-auto scrollbar-thin pr-2">
+                        <!-- Parameters will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - AI Chat -->
+            <div class="space-y-6">
+                <!-- AI Chat Interface -->
+                <div class="glass rounded-2xl p-6 flex flex-col" style="height: calc(100vh - 200px); min-height: 600px;">
+                    <div class="flex items-center gap-3 mb-4 pb-4 border-b border-gray-700/50">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold">Sherlock AI</h3>
+                            <p class="text-xs text-gray-400" id="aiStatus">Ready to analyze</p>
+                        </div>
+                    </div>
+                    
+                    <div id="chatMessages" class="flex-1 overflow-y-auto scrollbar-thin space-y-4 mb-4">
+                        <!-- Welcome Message -->
+                        <div class="flex gap-3 animate-slide-up">
+                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-robot text-sm"></i>
+                            </div>
+                            <div class="glass-dark rounded-2xl rounded-tl-sm p-4 max-w-[85%]">
+                                <p class="text-sm text-gray-300">Welcome to Sherlock! I'm your AI crypto analyst powered by Gemini. I analyze <strong>100+ parameters</strong> in real-time to provide you with actionable insights.</p>
+                                <p class="text-sm text-gray-300 mt-2">Select a crypto asset to begin analysis, or ask me anything about the markets!</p>
+                                <div class="flex flex-wrap gap-2 mt-3">
+                                    <button onclick="askQuickQuestion('analyze')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition">📊 Full Analysis</button>
+                                    <button onclick="askQuickQuestion('signal')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition">🎯 Buy/Sell Signal</button>
+                                    <button onclick="askQuickQuestion('risk')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition">⚠️ Risk Assessment</button>
+                                    <button onclick="askQuickQuestion('levels')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition">📐 Key Levels</button>
+                                    <button onclick="askQuickQuestion('compare')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition">⚖️ Compare to BTC</button>
+                                </div>
+                                <div class="flex flex-wrap gap-2 mt-2 pt-2 border-t border-gray-700/50">
+                                    <span class="text-xs text-gray-500 w-full mb-1">📅 Timeframe Analysis:</span>
+                                    <button onclick="askQuickQuestion('1-3days')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30">🕐 1-3 Days</button>
+                                    <button onclick="askQuickQuestion('1week')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30">📆 1 Week</button>
+                                    <button onclick="askQuickQuestion('1month')" class="text-xs glass rounded-lg px-3 py-1.5 hover:bg-white/10 transition bg-gradient-to-r from-orange-500/20 to-yellow-500/20 border border-orange-500/30">📅 1 Month</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Chat Input -->
+                    <div class="relative">
+                        <textarea id="chatInput" placeholder="Ask Sherlock anything..." rows="2"
+                            class="w-full bg-black/30 border border-gray-700 rounded-xl pl-4 pr-12 py-3 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none transition resize-none"
+                            onkeydown="handleChatKeydown(event)"></textarea>
+                        <button onclick="sendMessage()" id="sendBtn" class="absolute right-3 bottom-3 w-8 h-8 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center hover:opacity-90 transition">
+                            <i class="fas fa-paper-plane text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        /*
+        ╔══════════════════════════════════════════════════════════════════════════════╗
+        ║                    🚀 FIREBASE HOSTING GUIDE FOR SHERLOCK 🚀                  ║
+        ╠══════════════════════════════════════════════════════════════════════════════╣
+        ║                                                                              ║
+        ║  STEP 1: INSTALL FIREBASE CLI                                               ║
+        ║  ─────────────────────────────────────────────────────────────────────────   ║
+        ║  Open terminal and run:                                                      ║
+        ║  $ npm install -g firebase-tools                                             ║
+        ║                                                                              ║
+        /*
+    </script>
+</body>
+</html>
